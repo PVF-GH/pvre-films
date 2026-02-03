@@ -4,7 +4,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Settings } from '@/types';
+
+interface SettingsForm {
+  id: string;
+  site_name: string;
+  logo_url: string;
+  about_text: string;
+  contact_email: string;
+  phone_number: string;
+  instagram_url: string;
+  facebook_url: string;
+}
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -13,15 +23,15 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [formData, setFormData] = useState<Settings>({
-    id: '1',
-    siteName: '',
-    logoUrl: '',
-    aboutText: '',
-    contactEmail: '',
-    instagramUrl: '',
-    facebookUrl: '',
-    phoneNumber: '',
+  const [formData, setFormData] = useState<SettingsForm>({
+    id: '',
+    site_name: '',
+    logo_url: '',
+    about_text: '',
+    contact_email: '',
+    phone_number: '',
+    instagram_url: '',
+    facebook_url: '',
   });
 
   useEffect(() => {
@@ -38,7 +48,17 @@ export default function AdminSettingsPage() {
       }
 
       const data = await response.json();
-      setFormData(data);
+      // Map data to form (handle both snake_case from DB)
+      setFormData({
+        id: data.id || '',
+        site_name: data.site_name || '',
+        logo_url: data.logo_url || '',
+        about_text: data.about_text || '',
+        contact_email: data.contact_email || '',
+        phone_number: data.phone_number || '',
+        instagram_url: data.instagram_url || '',
+        facebook_url: data.facebook_url || '',
+      });
       setLoading(false);
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -115,28 +135,28 @@ export default function AdminSettingsPage() {
             <h2 className="text-sm text-zinc-600 mb-6">General</h2>
             <div className="space-y-6">
               <div>
-                <label htmlFor="siteName" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="site_name" className="block text-xs text-zinc-600 mb-2">
                   Site Name
                 </label>
                 <input
                   type="text"
-                  id="siteName"
-                  value={formData.siteName}
-                  onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
+                  id="site_name"
+                  value={formData.site_name}
+                  onChange={(e) => setFormData({ ...formData, site_name: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="PVRE.FILMS"
                 />
               </div>
 
               <div>
-                <label htmlFor="logoUrl" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="logo_url" className="block text-xs text-zinc-600 mb-2">
                   Logo URL
                 </label>
                 <input
                   type="text"
-                  id="logoUrl"
-                  value={formData.logoUrl}
-                  onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                  id="logo_url"
+                  value={formData.logo_url}
+                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="/logo.png"
                 />
@@ -148,14 +168,14 @@ export default function AdminSettingsPage() {
           <div className="border border-zinc-900 p-6">
             <h2 className="text-sm text-zinc-600 mb-6">About</h2>
             <div>
-              <label htmlFor="aboutText" className="block text-xs text-zinc-600 mb-2">
+              <label htmlFor="about_text" className="block text-xs text-zinc-600 mb-2">
                 About Text
               </label>
               <textarea
-                id="aboutText"
+                id="about_text"
                 rows={6}
-                value={formData.aboutText}
-                onChange={(e) => setFormData({ ...formData, aboutText: e.target.value })}
+                value={formData.about_text}
+                onChange={(e) => setFormData({ ...formData, about_text: e.target.value })}
                 className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm resize-none"
                 placeholder="Tell your story..."
               />
@@ -170,28 +190,28 @@ export default function AdminSettingsPage() {
             <h2 className="text-sm text-zinc-600 mb-6">Contact</h2>
             <div className="space-y-6">
               <div>
-                <label htmlFor="contactEmail" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="contact_email" className="block text-xs text-zinc-600 mb-2">
                   Email
                 </label>
                 <input
                   type="email"
-                  id="contactEmail"
-                  value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  id="contact_email"
+                  value={formData.contact_email}
+                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="contact@pvre.films"
                 />
               </div>
 
               <div>
-                <label htmlFor="phoneNumber" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="phone_number" className="block text-xs text-zinc-600 mb-2">
                   Phone
                 </label>
                 <input
                   type="tel"
-                  id="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  id="phone_number"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="+1 (555) 123-4567"
                 />
@@ -204,28 +224,28 @@ export default function AdminSettingsPage() {
             <h2 className="text-sm text-zinc-600 mb-6">Social</h2>
             <div className="space-y-6">
               <div>
-                <label htmlFor="instagramUrl" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="instagram_url" className="block text-xs text-zinc-600 mb-2">
                   Instagram URL
                 </label>
                 <input
                   type="url"
-                  id="instagramUrl"
-                  value={formData.instagramUrl}
-                  onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
+                  id="instagram_url"
+                  value={formData.instagram_url}
+                  onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="https://instagram.com/pvre.films"
                 />
               </div>
 
               <div>
-                <label htmlFor="facebookUrl" className="block text-xs text-zinc-600 mb-2">
+                <label htmlFor="facebook_url" className="block text-xs text-zinc-600 mb-2">
                   Facebook URL
                 </label>
                 <input
                   type="url"
-                  id="facebookUrl"
-                  value={formData.facebookUrl}
-                  onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
+                  id="facebook_url"
+                  value={formData.facebook_url}
+                  onChange={(e) => setFormData({ ...formData, facebook_url: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="https://facebook.com/pvre.films"
                 />

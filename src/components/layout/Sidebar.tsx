@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
 import { Menu, X } from 'lucide-react';
 
 interface CategoryWithCount {
@@ -12,8 +12,10 @@ interface CategoryWithCount {
   imageCount: number;
 }
 
-export default function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [videoCount, setVideoCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -143,7 +145,7 @@ export default function Sidebar() {
                     className={`
                       block text-sm transition-colors duration-200
                       ${
-                        pathname.includes(`category=${category.slug}`)
+                        categoryParam === category.slug
                           ? 'text-white'
                           : 'text-zinc-500 hover:text-white'
                       }
@@ -159,7 +161,7 @@ export default function Sidebar() {
                 onClick={closeMobileMenu}
                 className={`
                   block text-sm transition-colors duration-200
-                  ${pathname === '/gallery' && !pathname.includes('category=') ? 'text-white' : 'text-zinc-500 hover:text-white'}
+                  ${pathname === '/gallery' && !categoryParam ? 'text-white' : 'text-zinc-500 hover:text-white'}
                 `}
               >
                 All Images
@@ -235,5 +237,13 @@ export default function Sidebar() {
         </div>
       </aside>
     </>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent />
+    </Suspense>
   );
 }

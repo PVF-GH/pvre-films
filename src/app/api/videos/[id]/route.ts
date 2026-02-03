@@ -1,28 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCategoryById, updateCategory, deleteCategory } from '@/lib/supabase';
+import { getVideoById, updateVideo, deleteVideo } from '@/lib/supabase';
 import { verifyAuth, isAdmin } from '@/lib/auth';
 
-// GET single category
+// GET single video
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const category = await getCategoryById(id);
+    const video = await getVideoById(id);
 
-    if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    if (!video) {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    return NextResponse.json(category);
+    return NextResponse.json(video);
   } catch (error) {
-    console.error('Error fetching category:', error);
-    return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    console.error('Error fetching video:', error);
+    return NextResponse.json({ error: 'Video not found' }, { status: 404 });
   }
 }
 
-// PUT update category (admin only)
+// PUT update video (admin only)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -37,22 +37,22 @@ export async function PUT(
     const data = await request.json();
 
     const updates: any = {};
-    if (data.name !== undefined) updates.name = data.name;
-    if (data.slug !== undefined) updates.slug = data.slug;
+    if (data.title !== undefined) updates.title = data.title;
+    if (data.youtube_url !== undefined) updates.youtube_url = data.youtube_url;
     if (data.description !== undefined) updates.description = data.description;
-    if (data.cover_image !== undefined) updates.cover_image = data.cover_image;
     if (data.display_order !== undefined) updates.display_order = data.display_order;
+    if (data.is_published !== undefined) updates.is_published = data.is_published;
 
-    const updatedCategory = await updateCategory(id, updates);
+    const updatedVideo = await updateVideo(id, updates);
 
-    return NextResponse.json(updatedCategory);
+    return NextResponse.json(updatedVideo);
   } catch (error) {
-    console.error('Error updating category:', error);
-    return NextResponse.json({ error: 'Failed to update category' }, { status: 400 });
+    console.error('Error updating video:', error);
+    return NextResponse.json({ error: 'Failed to update video' }, { status: 400 });
   }
 }
 
-// DELETE category (admin only)
+// DELETE video (admin only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -64,11 +64,11 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    await deleteCategory(id);
+    await deleteVideo(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting category:', error);
-    return NextResponse.json({ error: 'Failed to delete category' }, { status: 400 });
+    console.error('Error deleting video:', error);
+    return NextResponse.json({ error: 'Failed to delete video' }, { status: 400 });
   }
 }

@@ -45,6 +45,8 @@ export interface Category {
   name: string
   slug: string
   description?: string
+  cover_image?: string
+  display_order?: number
   created_at: string
   updated_at: string
 }
@@ -202,6 +204,7 @@ export interface Settings {
   phone_number?: string
   instagram_url?: string
   facebook_url?: string
+  all_images_cover?: string
   created_at: string
   updated_at: string
 }
@@ -246,4 +249,75 @@ export async function getUserByEmail(email: string) {
 
   if (error) return null
   return data as User
+}
+
+// Video types and operations
+export interface Video {
+  id: string
+  title: string
+  youtube_url: string
+  description?: string
+  display_order: number
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getVideos(publishedOnly = false) {
+  let query = supabaseAdmin
+    .from('videos')
+    .select('*')
+    .order('display_order', { ascending: true })
+
+  if (publishedOnly) {
+    query = query.eq('is_published', true)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data as Video[]
+}
+
+export async function getVideoById(id: string) {
+  const { data, error } = await supabaseAdmin
+    .from('videos')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data as Video
+}
+
+export async function createVideo(video: Omit<Video, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabaseAdmin
+    .from('videos')
+    .insert([video])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Video
+}
+
+export async function updateVideo(id: string, updates: Partial<Video>) {
+  const { data, error } = await supabaseAdmin
+    .from('videos')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Video
+}
+
+export async function deleteVideo(id: string) {
+  const { error } = await supabaseAdmin
+    .from('videos')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
 }

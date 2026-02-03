@@ -188,16 +188,22 @@ export default function Sidebar() {
           {/* About & Contact Section */}
           <div className="space-y-3">
             <Link
-              href="/#about"
+              href="/about"
               onClick={closeMobileMenu}
-              className="block text-sm text-zinc-500 hover:text-white transition-colors duration-200"
+              className={`
+                block text-sm transition-colors duration-200
+                ${isActive('/about') ? 'text-white' : 'text-zinc-500 hover:text-white'}
+              `}
             >
               About
             </Link>
             <Link
-              href="/#contact"
+              href="/contact"
               onClick={closeMobileMenu}
-              className="block text-sm text-zinc-500 hover:text-white transition-colors duration-200"
+              className={`
+                block text-sm transition-colors duration-200
+                ${isActive('/contact') ? 'text-white' : 'text-zinc-500 hover:text-white'}
+              `}
             >
               Contact
             </Link>

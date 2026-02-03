@@ -215,7 +215,7 @@ export default function Home() {
             <div className="border-t border-zinc-900 my-12" />
 
             {/* Section 3: Videos */}
-            <section>
+            <section id="videos">
               <h2 className="text-xl lg:text-2xl text-white font-light tracking-wide mb-8">
                 Videos
               </h2>

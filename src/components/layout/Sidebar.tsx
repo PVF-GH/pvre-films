@@ -15,16 +15,18 @@ interface CategoryWithCount {
 export default function Sidebar() {
   const pathname = usePathname();
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
+  const [videoCount, setVideoCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchData = () => {
-    // Fetch categories with image counts
+    // Fetch categories with image counts and videos
     Promise.all([
       fetch('/api/categories').then((res) => res.json()),
       fetch('/api/images').then((res) => res.json()),
+      fetch('/api/videos?published=true').then((res) => res.json()).catch(() => []),
     ])
-      .then(([categoriesData, imagesData]) => {
+      .then(([categoriesData, imagesData, videosData]) => {
         // Count images per category
         const counts: Record<string, number> = {};
         if (Array.isArray(imagesData)) {
@@ -45,6 +47,7 @@ export default function Sidebar() {
         }));
 
         setCategories(categoriesWithCounts);
+        setVideoCount(Array.isArray(videosData) ? videosData.length : 0);
         setLoading(false);
       })
       .catch((error) => {
@@ -109,7 +112,7 @@ export default function Sidebar() {
         `}
       >
         {/* Logo & Tagline */}
-        <div className="mb-12">
+        <div className="mb-8">
           <Link href="/" onClick={closeMobileMenu}>
             <h1 className="text-lg font-semibold tracking-wide text-white mb-1">
               PVRE.FILMS
@@ -122,36 +125,67 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1">
-          {/* Categories */}
-          <div className="space-y-3">
-            {loading ? (
-              <div className="text-xs text-zinc-600">Loading...</div>
-            ) : (
-              categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/gallery?category=${category.slug}`}
-                  onClick={closeMobileMenu}
-                  className={`
-                    block text-sm transition-colors duration-200
-                    ${
-                      pathname.includes(`category=${category.slug}`)
-                        ? 'text-white'
-                        : 'text-zinc-500 hover:text-white'
-                    }
-                  `}
-                >
-                  {category.name}{' '}
-                  <span className="text-zinc-600">({category.imageCount})</span>
-                </Link>
-              ))
-            )}
+          {/* Divider after logo */}
+          <div className="mb-6 border-t border-zinc-900" />
+
+          {/* Photos Section */}
+          <div className="mb-6">
+            <h2 className="text-xs text-zinc-600 uppercase tracking-wider mb-4">Photos</h2>
+            <div className="space-y-3">
+              {loading ? (
+                <div className="text-xs text-zinc-600">Loading...</div>
+              ) : (
+                categories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/gallery?category=${category.slug}`}
+                    onClick={closeMobileMenu}
+                    className={`
+                      block text-sm transition-colors duration-200
+                      ${
+                        pathname.includes(`category=${category.slug}`)
+                          ? 'text-white'
+                          : 'text-zinc-500 hover:text-white'
+                      }
+                    `}
+                  >
+                    {category.name}{' '}
+                    <span className="text-zinc-600">({category.imageCount})</span>
+                  </Link>
+                ))
+              )}
+              <Link
+                href="/gallery"
+                onClick={closeMobileMenu}
+                className={`
+                  block text-sm transition-colors duration-200
+                  ${pathname === '/gallery' && !pathname.includes('category=') ? 'text-white' : 'text-zinc-500 hover:text-white'}
+                `}
+              >
+                All Images
+              </Link>
+            </div>
           </div>
 
           {/* Divider */}
-          <div className="my-8 border-t border-zinc-900" />
+          <div className="mb-6 border-t border-zinc-900" />
 
-          {/* Static Links */}
+          {/* Videos Section */}
+          <div className="mb-6">
+            <h2 className="text-xs text-zinc-600 uppercase tracking-wider mb-4">Videos</h2>
+            <Link
+              href="/#videos"
+              onClick={closeMobileMenu}
+              className="block text-sm text-zinc-500 hover:text-white transition-colors duration-200"
+            >
+              View Videos {videoCount > 0 && <span className="text-zinc-600">({videoCount})</span>}
+            </Link>
+          </div>
+
+          {/* Divider */}
+          <div className="mb-6 border-t border-zinc-900" />
+
+          {/* About Section */}
           <div className="space-y-3">
             <Link
               href="/about"

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Upload, X, Trash2, Eye, EyeOff, ArrowLeft, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Upload, X, Trash2, Eye, EyeOff, ArrowLeft, CheckCircle, AlertCircle, Loader, GripVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
 import { Image as ImageType, Category } from '@/types';
@@ -43,6 +43,10 @@ export default function AdminImagesPage() {
   const [bulkFolder, setBulkFolder] = useState('');
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+
+  // Drag reorder state
+  const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
+  const [dragOverImageId, setDragOverImageId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -205,6 +209,56 @@ export default function AdminImagesPage() {
     } catch (error) {
       console.error('Update error:', error);
     }
+  };
+
+  const handleImageDragStart = (id: string) => {
+    setDraggedImageId(id);
+  };
+
+  const handleImageDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (id !== draggedImageId) {
+      setDragOverImageId(id);
+    }
+  };
+
+  const handleImageDrop = async (targetId: string) => {
+    if (!draggedImageId || draggedImageId === targetId) {
+      setDraggedImageId(null);
+      setDragOverImageId(null);
+      return;
+    }
+
+    const oldIndex = filteredImages.findIndex((img) => img.id === draggedImageId);
+    const newIndex = filteredImages.findIndex((img) => img.id === targetId);
+
+    const reordered = [...filteredImages];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    // Optimistic update
+    setImages((prev) => {
+      const otherImages = prev.filter((img) => !reordered.find((r) => r.id === img.id));
+      return [...reordered, ...otherImages];
+    });
+    setDraggedImageId(null);
+    setDragOverImageId(null);
+
+    try {
+      await fetch('/api/images/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: reordered.map((img) => img.id) }),
+      });
+    } catch (error) {
+      console.error('Reorder error:', error);
+      await fetchData();
+    }
+  };
+
+  const handleImageDragEnd = () => {
+    setDraggedImageId(null);
+    setDragOverImageId(null);
   };
 
   const generateTitle = (filename: string): string => {
@@ -759,7 +813,21 @@ export default function AdminImagesPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredImages.map((image) => (
-              <div key={image.id} className="group">
+              <div
+                key={image.id}
+                draggable
+                onDragStart={() => handleImageDragStart(image.id)}
+                onDragOver={(e) => handleImageDragOver(e, image.id)}
+                onDrop={() => handleImageDrop(image.id)}
+                onDragEnd={handleImageDragEnd}
+                className={`group cursor-grab active:cursor-grabbing transition-all ${
+                  dragOverImageId === image.id
+                    ? 'ring-2 ring-white scale-[1.02]'
+                    : draggedImageId === image.id
+                      ? 'opacity-40'
+                      : ''
+                }`}
+              >
                 <div className="relative aspect-square bg-zinc-900 overflow-hidden mb-2">
                   <Image
                     src={getImageSrc(image)}
@@ -773,6 +841,9 @@ export default function AdminImagesPage() {
                       Draft
                     </div>
                   )}
+                  <div className="absolute top-2 right-2 text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical size={16} />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">

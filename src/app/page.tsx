@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 interface Video {
   id: string;
@@ -30,6 +30,8 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>({});
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     Promise.all([
@@ -67,22 +69,25 @@ export default function Home() {
         {/* Images Grid */}
         {images.length > 0 ? (
           <section className="mb-12">
-            <div className="columns-2 lg:columns-3 gap-3 lg:gap-4">
-              {images.map((image) => (
-                <Link
+            <div className="columns-1 gap-3 lg:gap-4 max-w-5xl mx-auto">
+              {images.map((image, index) => (
+                <div
                   key={image.id}
-                  href="/gallery"
-                  className="mb-3 lg:mb-4 break-inside-avoid group overflow-hidden bg-zinc-900 block"
+                  className="mb-3 lg:mb-4 break-inside-avoid group overflow-hidden bg-zinc-900 block cursor-pointer"
+                  onClick={() => {
+                    setCurrentImageIndex(index);
+                    setLightboxOpen(true);
+                  }}
                 >
                   <Image
                     src={getImageSrc(image)}
                     alt={image.title}
                     width={0}
                     height={0}
-                    sizes="(max-width: 768px) 50vw, 33vw"
+                    sizes="100vw"
                     className="w-full h-auto transition-all duration-500 group-hover:scale-[1.02] group-hover:opacity-90"
                   />
-                </Link>
+                </div>
               ))}
             </div>
           </section>
@@ -232,6 +237,16 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && images.length > 0 && (
+        <ImageLightbox
+          images={images}
+          currentIndex={currentImageIndex}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setCurrentImageIndex}
+        />
+      )}
     </div>
   );
 }

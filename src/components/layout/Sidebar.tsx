@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface CategoryWithCount {
   id: string;
   name: string;
   slug: string;
+  parent_id: string | null;
   imageCount: number;
 }
 
@@ -20,6 +21,7 @@ function SidebarContent() {
   const [videoCount, setVideoCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   const fetchData = () => {
     // Fetch categories with image counts and videos
@@ -45,6 +47,7 @@ function SidebarContent() {
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
+          parent_id: cat.parent_id || null,
           imageCount: counts[cat.id] || 0,
         }));
 
@@ -83,7 +86,7 @@ function SidebarContent() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-black border-b border-zinc-900">
         <div className="flex items-center justify-between px-6 py-4">
           <Link href="/" className="text-white">
-            <h1 className="text-lg font-semibold tracking-wide">PVRE.FILMS</h1>
+            <h1 className="text-lg font-semibold tracking-wide">PVRE.FILM</h1>
           </Link>
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -117,7 +120,7 @@ function SidebarContent() {
         <div className="mb-8">
           <Link href="/" onClick={closeMobileMenu}>
             <h1 className="text-lg font-semibold tracking-wide text-white mb-1">
-              PVRE.FILMS
+              PVRE.FILM
             </h1>
             <p className="text-xs text-zinc-500 tracking-wide">
               Photographer / Filmmaker
@@ -133,34 +136,83 @@ function SidebarContent() {
           {/* Photos Section */}
           <div className="mb-6">
             <h2 className="text-xs text-zinc-600 uppercase tracking-wider mb-4">Photos</h2>
-            <div className="space-y-3">
+            <div className="space-y-1">
               {loading ? (
                 <div className="text-xs text-zinc-600">Loading...</div>
               ) : (
-                categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    href={`/gallery?category=${category.slug}`}
-                    onClick={closeMobileMenu}
-                    className={`
-                      block text-sm transition-colors duration-200
-                      ${
-                        categoryParam === category.slug
-                          ? 'text-white'
-                          : 'text-zinc-500 hover:text-white'
-                      }
-                    `}
-                  >
-                    {category.name}{' '}
-                    <span className="text-zinc-600">({category.imageCount})</span>
-                  </Link>
-                ))
+                (() => {
+                  const parentCategories = categories.filter((c) => !c.parent_id);
+                  const childrenOf = (parentId: string) =>
+                    categories.filter((c) => c.parent_id === parentId);
+
+                  return parentCategories.map((parent) => {
+                    const children = childrenOf(parent.id);
+                    const isExpanded = expandedParents.has(parent.id);
+                    const hasChildren = children.length > 0;
+
+                    return (
+                      <div key={parent.id}>
+                        <div className="flex items-center">
+                          {hasChildren ? (
+                            <button
+                              onClick={() => {
+                                setExpandedParents((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(parent.id)) {
+                                    next.delete(parent.id);
+                                  } else {
+                                    next.add(parent.id);
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="text-zinc-600 hover:text-zinc-400 mr-1 p-0.5"
+                            >
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          ) : (
+                            <span className="w-[22px]" />
+                          )}
+                          <Link
+                            href={`/gallery?category=${parent.slug}`}
+                            onClick={closeMobileMenu}
+                            className={`
+                              block text-sm py-1 transition-colors duration-200
+                              ${categoryParam === parent.slug ? 'text-white' : 'text-zinc-500 hover:text-white'}
+                            `}
+                          >
+                            {parent.name}{' '}
+                            <span className="text-zinc-600">({parent.imageCount})</span>
+                          </Link>
+                        </div>
+                        {hasChildren && isExpanded && (
+                          <div className="ml-[22px] space-y-1">
+                            {children.map((child) => (
+                              <Link
+                                key={child.id}
+                                href={`/gallery?category=${child.slug}`}
+                                onClick={closeMobileMenu}
+                                className={`
+                                  block text-sm py-1 pl-2 border-l border-zinc-800 transition-colors duration-200
+                                  ${categoryParam === child.slug ? 'text-white' : 'text-zinc-500 hover:text-white'}
+                                `}
+                              >
+                                {child.name}{' '}
+                                <span className="text-zinc-600">({child.imageCount})</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()
               )}
               <Link
                 href="/gallery"
                 onClick={closeMobileMenu}
                 className={`
-                  block text-sm transition-colors duration-200
+                  block text-sm py-1 ml-[22px] transition-colors duration-200
                   ${pathname === '/gallery' && !categoryParam ? 'text-white' : 'text-zinc-500 hover:text-white'}
                 `}
               >

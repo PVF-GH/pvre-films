@@ -10,6 +10,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parent_id?: string | null;
   description?: string;
   cover_image?: string;
   display_order?: number;
@@ -27,6 +28,7 @@ export default function AdminCategoriesPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
+    parent_id: '' as string,
     description: '',
     cover_image: '',
     display_order: 0,
@@ -116,6 +118,7 @@ export default function AdminCategoriesPage() {
         body: JSON.stringify({
           name: formData.name,
           slug,
+          parent_id: formData.parent_id || null,
           description: formData.description,
           cover_image: formData.cover_image,
           display_order,
@@ -142,6 +145,7 @@ export default function AdminCategoriesPage() {
     setFormData({
       name: category.name,
       slug: category.slug,
+      parent_id: category.parent_id || '',
       description: category.description || '',
       cover_image: category.cover_image || '',
       display_order: category.display_order || 0,
@@ -218,7 +222,7 @@ export default function AdminCategoriesPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', slug: '', description: '', cover_image: '', display_order: 0 });
+    setFormData({ name: '', slug: '', parent_id: '', description: '', cover_image: '', display_order: 0 });
     setError('');
     setEditingId(null);
   };
@@ -310,6 +314,27 @@ export default function AdminCategoriesPage() {
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
                   placeholder="auto-generated from name"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="parent_id" className="block text-xs text-zinc-600 mb-2">
+                  Parent Category (for sub-folder)
+                </label>
+                <select
+                  id="parent_id"
+                  value={formData.parent_id}
+                  onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                  className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
+                >
+                  <option value="" className="bg-black">None (top-level)</option>
+                  {categories
+                    .filter((c) => !c.parent_id && c.id !== editingId)
+                    .map((c) => (
+                      <option key={c.id} value={c.id} className="bg-black">
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div>
@@ -430,7 +455,14 @@ export default function AdminCategoriesPage() {
                       </div>
                     )}
                     <div>
-                      <h3 className="text-sm text-white">{category.name}</h3>
+                      <h3 className="text-sm text-white">
+                        {category.parent_id && (
+                          <span className="text-zinc-600 mr-1">
+                            {categories.find((c) => c.id === category.parent_id)?.name} /
+                          </span>
+                        )}
+                        {category.name}
+                      </h3>
                       <p className="text-xs text-zinc-600">/{category.slug}</p>
                       {category.description && (
                         <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{category.description}</p>

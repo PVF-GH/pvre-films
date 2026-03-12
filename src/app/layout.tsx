@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PVRE.FILMS",
+  title: "PVRE.FILM",
   description: "Photographer / Filmmaker Portfolio",
 };
 

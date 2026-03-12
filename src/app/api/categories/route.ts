@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     const newCategory = await createCategory({
       name: data.name,
       slug,
+      parent_id: data.parent_id || null,
       description: data.description || '',
       cover_image: data.cover_image || '',
       display_order: data.display_order || 0,

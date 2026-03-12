@@ -44,6 +44,7 @@ export interface Category {
   id: string
   name: string
   slug: string
+  parent_id?: string | null
   description?: string
   cover_image?: string
   display_order?: number

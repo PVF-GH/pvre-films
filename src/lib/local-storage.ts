@@ -181,7 +181,7 @@ export function getSettings(): Settings {
   ensureDataDir();
   const defaultSettings: Settings = {
     id: '1',
-    siteName: 'PVRE.FILMS',
+    siteName: 'PVRE.FILM',
     logoUrl: '',
     aboutText: 'A photographer and filmmaker based in New York City, specializing in portraits, documentary work, and commercial projects.\n\nWith over 10 years of experience, I bring a unique perspective to every project, combining technical expertise with artistic vision.',
     contactEmail: 'contact@pvre.films',

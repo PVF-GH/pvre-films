@@ -53,7 +53,7 @@ export const mockImages: Image[] = [];
 
 export const mockSettings: Settings = {
   id: '1',
-  siteName: 'PVRE.FILMS',
+  siteName: 'PVRE.FILM',
   logoUrl: '/logo.png',
   aboutText: `I'm a passionate photographer specializing in capturing authentic moments and creating stunning visual narratives. With over 10 years of experience in studio, location, commercial, and documentary photography, I bring a unique perspective to every project.\n\nMy work focuses on storytelling through imagery, whether it's a corporate brand campaign, intimate portrait session, or documentary project. I believe in creating timeless photographs that resonate with emotion and artistry.`,
   contactEmail: 'info@pvre.films',

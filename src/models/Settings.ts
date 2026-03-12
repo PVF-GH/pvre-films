@@ -13,7 +13,7 @@ export interface ISettings {
 const SettingsSchema = new Schema<ISettings>({
   siteName: {
     type: String,
-    default: 'PVRE.FILMS',
+    default: 'PVRE.FILM',
   },
   logoUrl: {
     type: String,

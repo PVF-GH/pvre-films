@@ -144,7 +144,7 @@ export default function AdminSettingsPage() {
                   value={formData.site_name}
                   onChange={(e) => setFormData({ ...formData, site_name: e.target.value })}
                   className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
-                  placeholder="PVRE.FILMS"
+                  placeholder="PVRE.FILM"
                 />
               </div>
 

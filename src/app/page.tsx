@@ -120,6 +120,24 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-black">
       <div className="p-6 lg:p-12">
+        {/* About */}
+        {settings.about_text && (
+          <section id="about" className="mb-12">
+            <h2 className="text-xl lg:text-2xl text-white font-light tracking-wide mb-8">
+              About
+            </h2>
+            <div className="space-y-4 max-w-2xl">
+              {settings.about_text.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="text-zinc-400 leading-relaxed text-sm lg:text-base">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="border-t border-zinc-900 my-12" />
+
         {/* Category Cards or Filtered Images */}
         {!categoryParam ? (
           <section className="mb-12">
@@ -283,29 +301,6 @@ function HomeContent() {
             </section>
           </>
         )}
-
-        {/* Divider before About */}
-        <div className="border-t border-zinc-900 my-12" />
-
-        {/* About */}
-        <section id="about" className="mb-12">
-          <h2 className="text-xl lg:text-2xl text-white font-light tracking-wide mb-8">
-            About
-          </h2>
-          {settings.about_text ? (
-            <div className="space-y-4 max-w-2xl">
-              {settings.about_text.split('\n\n').map((paragraph, index) => (
-                <p key={index} className="text-zinc-400 leading-relaxed text-sm lg:text-base">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-zinc-600 text-sm">
-              About information coming soon.
-            </p>
-          )}
-        </section>
 
         {/* Divider before Contact */}
         <div className="border-t border-zinc-900 my-12" />

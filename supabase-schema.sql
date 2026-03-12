@@ -127,7 +127,7 @@ CREATE POLICY "Allow authenticated users to update settings"
 INSERT INTO users (email, password, role)
 VALUES (
   'admin@pvre.films',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjqQl1l0oaJZWEFKj3MRLa/PoKQLey',
+  '$2b$10$2K6DucEsSAcyat/RUOA4gepyrStCqKX8qL334t01ifbqYHsH5y9DW',
   'admin'
 )
 ON CONFLICT (email) DO NOTHING;

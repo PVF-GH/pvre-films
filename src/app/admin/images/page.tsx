@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Upload, X, Trash2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Upload, X, Trash2, Eye, EyeOff, ArrowLeft, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import Link from 'next/link';
+import { useDropzone } from 'react-dropzone';
 import { Image as ImageType, Category } from '@/types';
 
 export default function AdminImagesPage() {
@@ -26,6 +27,22 @@ export default function AdminImagesPage() {
   const [uploadError, setUploadError] = useState('');
 
   const [filterCategory, setFilterCategory] = useState<string>('all');
+
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
+
+  // Bulk upload state
+  interface BulkFile {
+    id: string;
+    file: File;
+    preview: string;
+    status: 'pending' | 'uploading' | 'done' | 'failed';
+    error?: string;
+  }
+  const [bulkFiles, setBulkFiles] = useState<BulkFile[]>([]);
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkFolder, setBulkFolder] = useState('');
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
     fetchData();
@@ -190,6 +207,160 @@ export default function AdminImagesPage() {
     }
   };
 
+  const generateTitle = (filename: string): string => {
+    return filename
+      .replace(/\.[^/.]+$/, '')       // strip extension
+      .replace(/[_-]/g, ' ')          // replace underscores/hyphens with spaces
+      .trim();
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const MAX_FILES = 50;
+    const currentCount = bulkFiles.length;
+    const remaining = MAX_FILES - currentCount;
+
+    if (remaining <= 0) {
+      return;
+    }
+
+    const filesToAdd = acceptedFiles.slice(0, remaining);
+    const newFiles: BulkFile[] = [];
+
+    filesToAdd.forEach((file) => {
+      const isHEIC = file.name.toLowerCase().endsWith('.heic') ||
+                     file.name.toLowerCase().endsWith('.heif') ||
+                     file.type === 'image/heic' ||
+                     file.type === 'image/heif';
+
+      const maxSize = isHEIC ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        // Add as failed so user sees which files were rejected
+        newFiles.push({
+          id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          file,
+          preview: URL.createObjectURL(file),
+          status: 'failed',
+          error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB, max ${isHEIC ? '10MB' : '5MB'})`,
+        });
+        return;
+      }
+
+      newFiles.push({
+        id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        file,
+        preview: URL.createObjectURL(file),
+        status: 'pending',
+      });
+    });
+
+    setBulkFiles((prev) => [...prev, ...newFiles]);
+  }, [bulkFiles.length]);
+
+  const removeBulkFile = (id: string) => {
+    setBulkFiles((prev) => {
+      const file = prev.find((f) => f.id === id);
+      if (file) URL.revokeObjectURL(file.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const convertHEIC = async (file: File): Promise<File> => {
+    const heic2any = (await import('heic2any')).default;
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9,
+    });
+    return new File(
+      [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+      file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+      { type: 'image/jpeg' }
+    );
+  };
+
+  const handleBulkUpload = async () => {
+    if (!bulkCategory || bulkFiles.length === 0) return;
+
+    setBulkUploading(true);
+    const toProcess = bulkFiles.filter((f) => f.status === 'pending' || f.status === 'failed');
+    const total = toProcess.length;
+    setBulkProgress({ done: 0, total });
+    let processed = 0;
+
+    for (let i = 0; i < bulkFiles.length; i++) {
+      const bf = bulkFiles[i];
+      if (bf.status === 'done') continue; // skip already uploaded
+
+      // Mark as uploading
+      setBulkFiles((prev) =>
+        prev.map((f) => (f.id === bf.id ? { ...f, status: 'uploading' as const, error: undefined } : f))
+      );
+
+      try {
+        let fileToUpload = bf.file;
+        const isHEIC = bf.file.name.toLowerCase().endsWith('.heic') ||
+                       bf.file.name.toLowerCase().endsWith('.heif') ||
+                       bf.file.type === 'image/heic' ||
+                       bf.file.type === 'image/heif';
+
+        if (isHEIC) {
+          fileToUpload = await convertHEIC(bf.file);
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('title', generateTitle(bf.file.name));
+        formData.append('categoryId', bulkCategory);
+        formData.append('isPublished', 'true');
+        if (bulkFolder.trim()) {
+          formData.append('folder', bulkFolder.trim());
+        }
+
+        const response = await fetch('/api/images/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          setBulkFiles((prev) =>
+            prev.map((f) => (f.id === bf.id ? { ...f, status: 'done' as const } : f))
+          );
+        } else {
+          const result = await response.json();
+          setBulkFiles((prev) =>
+            prev.map((f) =>
+              f.id === bf.id ? { ...f, status: 'failed' as const, error: result.error || 'Upload failed' } : f
+            )
+          );
+        }
+      } catch (error) {
+        setBulkFiles((prev) =>
+          prev.map((f) =>
+            f.id === bf.id ? { ...f, status: 'failed' as const, error: 'Network error' } : f
+          )
+        );
+      }
+
+      processed++;
+      setBulkProgress({ done: processed, total });
+    }
+
+    setBulkUploading(false);
+    await fetchData();
+    window.dispatchEvent(new Event('sidebarRefresh'));
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif'],
+    },
+    disabled: bulkUploading,
+  });
+
   const getImageSrc = (image: any) => {
     return image.thumbnail_path || image.thumbnailUrl || image.storage_path || image.imageUrl;
   };
@@ -222,20 +393,44 @@ export default function AdminImagesPage() {
               </Link>
               <h1 className="text-lg font-light text-white tracking-wide">Images</h1>
             </div>
-            <button
-              onClick={() => setShowUploadForm(!showUploadForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black text-sm hover:bg-zinc-200 transition-colors"
-            >
-              <Upload size={16} />
-              Upload
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex border border-zinc-800">
+                <button
+                  onClick={() => { setUploadMode('single'); setShowUploadForm(true); }}
+                  className={`px-3 py-2 text-xs transition-colors ${
+                    uploadMode === 'single' && showUploadForm
+                      ? 'bg-white text-black'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Single
+                </button>
+                <button
+                  onClick={() => { setUploadMode('bulk'); setShowUploadForm(true); }}
+                  className={`px-3 py-2 text-xs transition-colors ${
+                    uploadMode === 'bulk' && showUploadForm
+                      ? 'bg-white text-black'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Bulk
+                </button>
+              </div>
+              <button
+                onClick={() => setShowUploadForm(!showUploadForm)}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-black text-sm hover:bg-zinc-200 transition-colors"
+              >
+                <Upload size={16} />
+                Upload
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="px-6 lg:px-12 py-8">
         {/* Upload Form */}
-        {showUploadForm && (
+        {showUploadForm && uploadMode === 'single' && (
           <div className="border border-zinc-900 p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-sm text-white">Upload New Image</h2>
@@ -361,6 +556,182 @@ export default function AdminImagesPage() {
                 {uploading ? 'Uploading...' : 'Upload Image'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Bulk Upload Form */}
+        {showUploadForm && uploadMode === 'bulk' && (
+          <div className="border border-zinc-900 p-6 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-sm text-white">Bulk Upload</h2>
+              <button
+                onClick={() => {
+                  setShowUploadForm(false);
+                  setBulkFiles([]);
+                  setBulkCategory('');
+                  setBulkFolder('');
+                }}
+                className="text-zinc-600 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Category */}
+              <div>
+                <label className="block text-xs text-zinc-600 mb-2">Category *</label>
+                <select
+                  value={bulkCategory}
+                  onChange={(e) => setBulkCategory(e.target.value)}
+                  className="w-full px-0 py-2 bg-black border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
+                  disabled={bulkUploading}
+                >
+                  <option value="">Select category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Folder */}
+              <div>
+                <label className="block text-xs text-zinc-600 mb-2">Storage Folder</label>
+                <input
+                  type="text"
+                  value={bulkFolder}
+                  onChange={(e) => setBulkFolder(e.target.value)}
+                  className="w-full px-0 py-2 bg-transparent border-b border-zinc-800 focus:border-zinc-600 focus:outline-none text-white text-sm"
+                  placeholder="e.g. session-1 (optional)"
+                  disabled={bulkUploading}
+                />
+                <p className="text-xs text-zinc-700 mt-1">Letters, numbers, hyphens, underscores only</p>
+              </div>
+
+              {/* Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`border border-dashed p-8 text-center transition-colors cursor-pointer ${
+                  isDragActive ? 'border-white bg-zinc-900' : 'border-zinc-800 hover:border-zinc-600'
+                } ${bulkUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <input {...getInputProps()} />
+                <Upload size={32} className="text-zinc-700 mb-2 mx-auto" />
+                <p className="text-zinc-600 text-sm">
+                  {isDragActive ? 'Drop images here' : 'Drag & drop images, or click to select'}
+                </p>
+                <p className="text-zinc-700 text-xs mt-1">
+                  PNG, JPG, HEIC up to 10MB each — max 50 files
+                </p>
+              </div>
+
+              {/* File Queue */}
+              {bulkFiles.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-zinc-600">
+                      {bulkFiles.length} file{bulkFiles.length !== 1 ? 's' : ''} queued
+                    </span>
+                    {!bulkUploading && (
+                      <button
+                        onClick={() => {
+                          bulkFiles.forEach((f) => URL.revokeObjectURL(f.preview));
+                          setBulkFiles([]);
+                        }}
+                        className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  {bulkUploading && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                        <span>Uploading...</span>
+                        <span>{bulkProgress.done} / {bulkProgress.total}</span>
+                      </div>
+                      <div className="w-full h-1 bg-zinc-900">
+                        <div
+                          className="h-1 bg-white transition-all duration-300"
+                          style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.done / bulkProgress.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 max-h-80 overflow-y-auto">
+                    {bulkFiles.map((bf) => (
+                      <div key={bf.id} className="relative group">
+                        <div className="aspect-square bg-zinc-900 overflow-hidden">
+                          <img
+                            src={bf.preview}
+                            alt={bf.file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-500 truncate mt-1">{bf.file.name}</p>
+                        <p className="text-[10px] text-zinc-700">{(bf.file.size / 1024 / 1024).toFixed(1)} MB</p>
+                        {/* Status overlay */}
+                        {bf.status === 'uploading' && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <Loader size={16} className="text-white animate-spin" />
+                          </div>
+                        )}
+                        {bf.status === 'done' && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <CheckCircle size={16} className="text-green-400" />
+                          </div>
+                        )}
+                        {bf.status === 'failed' && (
+                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center" title={bf.error}>
+                            <AlertCircle size={16} className="text-red-400" />
+                            {bf.error && (
+                              <p className="text-[8px] text-red-300 text-center mt-1 px-1 leading-tight">{bf.error}</p>
+                            )}
+                          </div>
+                        )}
+                        {/* Remove button */}
+                        {bf.status === 'pending' && !bulkUploading && (
+                          <button
+                            onClick={() => removeBulkFile(bf.id)}
+                            className="absolute top-0.5 right-0.5 bg-black/80 text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                        {/* Retry button for failed */}
+                        {bf.status === 'failed' && !bulkUploading && (
+                          <button
+                            onClick={() =>
+                              setBulkFiles((prev) =>
+                                prev.map((f) => (f.id === bf.id ? { ...f, status: 'pending' as const, error: undefined } : f))
+                              )
+                            }
+                            className="absolute bottom-0.5 left-0.5 right-0.5 bg-red-900/80 text-red-200 text-[10px] text-center py-0.5"
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload All button */}
+              <button
+                onClick={handleBulkUpload}
+                disabled={bulkUploading || bulkFiles.filter((f) => f.status === 'pending').length === 0 || !bulkCategory}
+                className="w-full py-3 bg-white text-black text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50"
+              >
+                {bulkUploading
+                  ? `Uploading ${bulkProgress.done} / ${bulkProgress.total}...`
+                  : `Upload ${bulkFiles.filter((f) => f.status === 'pending' || f.status === 'failed').length} Images`
+                }
+              </button>
+            </div>
           </div>
         )}
 

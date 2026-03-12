@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string;
     const categoryId = formData.get('categoryId') as string;
     const isFeatured = formData.get('isPublished') === 'true' || formData.get('isFeatured') === 'true';
+    const folder = (formData.get('folder') as string)?.trim() || '';
 
     if (!file || !title) {
       return NextResponse.json(
@@ -39,10 +40,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate folder name if provided
+    let sanitizedFolder = '';
+    if (folder) {
+      // Strip leading/trailing slashes
+      sanitizedFolder = folder.replace(/^\/+|\/+$/g, '');
+      // Reject path traversal
+      if (sanitizedFolder.includes('..')) {
+        return NextResponse.json(
+          { error: 'Invalid folder name: path traversal not allowed' },
+          { status: 400 }
+        );
+      }
+      // Allow only alphanumeric, hyphens, underscores, forward slashes
+      if (!/^[a-zA-Z0-9\-_/]+$/.test(sanitizedFolder)) {
+        return NextResponse.json(
+          { error: 'Invalid folder name: only letters, numbers, hyphens, underscores, and slashes allowed' },
+          { status: 400 }
+        );
+      }
+      // Max length
+      if (sanitizedFolder.length > 100) {
+        return NextResponse.json(
+          { error: 'Folder name must be 100 characters or less' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${timestamp}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const baseName = `${timestamp}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const fileName = sanitizedFolder ? `${sanitizedFolder}/${baseName}` : baseName;
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();

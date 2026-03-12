@@ -67,19 +67,20 @@ export default function Home() {
         {/* Images Grid */}
         {images.length > 0 ? (
           <section className="mb-12">
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+            <div className="columns-2 lg:columns-3 gap-3 lg:gap-4">
               {images.map((image) => (
                 <Link
                   key={image.id}
                   href="/gallery"
-                  className="relative aspect-[4/3] group overflow-hidden bg-zinc-900"
+                  className="mb-3 lg:mb-4 break-inside-avoid group overflow-hidden bg-zinc-900 block"
                 >
                   <Image
                     src={getImageSrc(image)}
                     alt={image.title}
-                    fill
-                    className="object-cover transition-all duration-500 group-hover:scale-[1.02] group-hover:opacity-90"
+                    width={0}
+                    height={0}
                     sizes="(max-width: 768px) 50vw, 33vw"
+                    className="w-full h-auto transition-all duration-500 group-hover:scale-[1.02] group-hover:opacity-90"
                   />
                 </Link>
               ))}

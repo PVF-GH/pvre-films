@@ -174,7 +174,7 @@ function SidebarContent() {
                             <span className="w-[22px]" />
                           )}
                           <Link
-                            href={`/gallery?category=${parent.slug}`}
+                            href={`/?category=${parent.slug}`}
                             onClick={closeMobileMenu}
                             className={`
                               block text-sm py-1 transition-colors duration-200
@@ -190,7 +190,7 @@ function SidebarContent() {
                             {children.map((child) => (
                               <Link
                                 key={child.id}
-                                href={`/gallery?category=${child.slug}`}
+                                href={`/?category=${child.slug}`}
                                 onClick={closeMobileMenu}
                                 className={`
                                   block text-sm py-1 pl-2 border-l border-zinc-800 transition-colors duration-200
@@ -209,11 +209,11 @@ function SidebarContent() {
                 })()
               )}
               <Link
-                href="/gallery"
+                href="/"
                 onClick={closeMobileMenu}
                 className={`
                   block text-sm py-1 ml-[22px] transition-colors duration-200
-                  ${pathname === '/gallery' && !categoryParam ? 'text-white' : 'text-zinc-500 hover:text-white'}
+                  ${pathname === '/' && !categoryParam ? 'text-white' : 'text-zinc-500 hover:text-white'}
                 `}
               >
                 All Images

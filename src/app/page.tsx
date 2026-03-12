@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import ImageLightbox from '@/components/ui/ImageLightbox';
 
@@ -25,31 +26,55 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
+
   const [videos, setVideos] = useState<Video[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [images, setImages] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/images').then((res) => res.json()),
+      fetch('/api/categories').then((res) => res.json()).catch(() => []),
       fetch('/api/videos?published=true').then((res) => res.json()).catch(() => []),
       fetch('/api/settings').then((res) => res.json()).catch(() => ({})),
     ])
-      .then(([imagesData, videosData, settingsData]) => {
-        setImages(Array.isArray(imagesData) ? imagesData : []);
+      .then(([categoriesData, videosData, settingsData]) => {
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
         setVideos(Array.isArray(videosData) ? videosData : []);
         setSettings(settingsData || {});
-        setLoading(false);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
-        setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const category = categories.find((c: any) => c.slug === categoryParam);
+    const categoryId = category?.id;
+
+    const url = categoryId
+      ? `/api/images?categoryId=${categoryId}`
+      : '/api/images';
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        setImages(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching images:', error);
+        setImages([]);
+        setLoading(false);
+      });
+  }, [categoryParam, categories]);
 
   if (loading) {
     return (
@@ -248,5 +273,19 @@ export default function Home() {
         />
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-black">
+          <div className="text-xs text-zinc-600 tracking-widest uppercase">Loading</div>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

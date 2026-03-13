@@ -19,6 +19,7 @@ function SidebarContent() {
   const categoryParam = searchParams.get('category');
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [videoCount, setVideoCount] = useState(0);
+  const [settings, setSettings] = useState<{ contact_email?: string; instagram_url?: string; facebook_url?: string }>({});
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -29,8 +30,9 @@ function SidebarContent() {
       fetch('/api/categories').then((res) => res.json()),
       fetch('/api/images').then((res) => res.json()),
       fetch('/api/videos?published=true').then((res) => res.json()).catch(() => []),
+      fetch('/api/settings').then((res) => res.json()).catch(() => ({})),
     ])
-      .then(([categoriesData, imagesData, videosData]) => {
+      .then(([categoriesData, imagesData, videosData, settingsData]) => {
         // Count images per category
         const counts: Record<string, number> = {};
         if (Array.isArray(imagesData)) {
@@ -53,6 +55,7 @@ function SidebarContent() {
 
         setCategories(categoriesWithCounts);
         setVideoCount(Array.isArray(videosData) ? videosData.length : 0);
+        setSettings(settingsData || {});
         setLoading(false);
       })
       .catch((error) => {
@@ -267,24 +270,40 @@ function SidebarContent() {
         {/* Contact Info */}
         <div className="mt-auto pt-8 border-t border-zinc-900">
           <div className="space-y-2 text-xs text-zinc-600">
-            <p>
-              <a
-                href="mailto:contact@pvre.films"
-                className="hover:text-zinc-400 transition-colors"
-              >
-                contact@pvre.films
-              </a>
-            </p>
-            <p>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-zinc-400 transition-colors"
-              >
-                Instagram
-              </a>
-            </p>
+            {settings.contact_email && (
+              <p>
+                <a
+                  href={`mailto:${settings.contact_email}`}
+                  className="hover:text-zinc-400 transition-colors"
+                >
+                  {settings.contact_email}
+                </a>
+              </p>
+            )}
+            {settings.instagram_url && (
+              <p>
+                <a
+                  href={settings.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-zinc-400 transition-colors"
+                >
+                  Instagram
+                </a>
+              </p>
+            )}
+            {settings.facebook_url && (
+              <p>
+                <a
+                  href={settings.facebook_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-zinc-400 transition-colors"
+                >
+                  Facebook
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </aside>

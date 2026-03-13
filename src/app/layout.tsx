@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased bg-black`}>
         <Sidebar />
-        <main className="pt-16 lg:pt-0 lg:ml-[280px] min-h-screen">{children}</main>
+        <main className="pt-16 lg:pt-0 lg:ml-[280px] min-h-screen bg-black">{children}</main>
       </body>
     </html>
   );

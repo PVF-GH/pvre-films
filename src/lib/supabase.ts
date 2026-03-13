@@ -221,9 +221,11 @@ export async function getSettings() {
 }
 
 export async function updateSettings(updates: Partial<Settings>) {
+  const { id, created_at, updated_at, ...fieldsToUpdate } = updates as any
   const { data, error } = await supabaseAdmin
     .from('settings')
-    .update(updates)
+    .update(fieldsToUpdate)
+    .eq('id', id)
     .select()
     .single()
 

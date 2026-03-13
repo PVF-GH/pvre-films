@@ -35,6 +35,10 @@ function HomeContent() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
+  const videoScrollRef = useRef<HTMLDivElement>(null);
+  const [canVideoScrollLeft, setCanVideoScrollLeft] = useState(false);
+  const [canVideoScrollRight, setCanVideoScrollRight] = useState(false);
+
   const updateScrollButtons = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -42,10 +46,24 @@ function HomeContent() {
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
   };
 
+  const updateVideoScrollButtons = () => {
+    const el = videoScrollRef.current;
+    if (!el) return;
+    setCanVideoScrollLeft(el.scrollLeft > 0);
+    setCanVideoScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
   const scrollBy = (direction: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
     const cardWidth = el.querySelector('a')?.offsetWidth || 300;
+    el.scrollBy({ left: direction === 'left' ? -cardWidth - 24 : cardWidth + 24, behavior: 'smooth' });
+  };
+
+  const scrollVideosBy = (direction: 'left' | 'right') => {
+    const el = videoScrollRef.current;
+    if (!el) return;
+    const cardWidth = (el.querySelector('div > div') as HTMLElement)?.offsetWidth || 400;
     el.scrollBy({ left: direction === 'left' ? -cardWidth - 24 : cardWidth + 24, behavior: 'smooth' });
   };
 
@@ -70,6 +88,10 @@ function HomeContent() {
   useEffect(() => {
     updateScrollButtons();
   }, [categories]);
+
+  useEffect(() => {
+    updateVideoScrollButtons();
+  }, [videos]);
 
   if (loading) {
     return (
@@ -188,35 +210,61 @@ function HomeContent() {
               <h2 className="text-xl lg:text-2xl text-white font-light tracking-wide mb-8">
                 Videos
               </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {videos.map((video) => {
-                  const videoId = getYouTubeId(video.youtube_url);
-                  return (
-                    <div key={video.id} className="space-y-3">
-                      <div className="relative aspect-video bg-zinc-900">
-                        {videoId ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${videoId}`}
-                            title={video.title}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute inset-0 w-full h-full"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-zinc-600 text-sm">Invalid video URL</span>
-                          </div>
-                        )}
+              <div className="relative">
+                {canVideoScrollLeft && (
+                  <button
+                    onClick={() => scrollVideosBy('left')}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/70 hover:bg-black/90 text-white p-2 transition-colors -ml-4"
+                    aria-label="Scroll left"
+                  >
+                    <ChevronLeft size={24} strokeWidth={1} />
+                  </button>
+                )}
+                {canVideoScrollRight && (
+                  <button
+                    onClick={() => scrollVideosBy('right')}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/70 hover:bg-black/90 text-white p-2 transition-colors -mr-4"
+                    aria-label="Scroll right"
+                  >
+                    <ChevronRight size={24} strokeWidth={1} />
+                  </button>
+                )}
+
+                <div
+                  ref={videoScrollRef}
+                  onScroll={updateVideoScrollButtons}
+                  className="flex gap-6 overflow-x-auto"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {videos.map((video) => {
+                    const videoId = getYouTubeId(video.youtube_url);
+                    return (
+                      <div key={video.id} className="flex-shrink-0 w-[85vw] sm:w-[70vw] lg:w-[calc(50%-12px)] space-y-3">
+                        <div className="relative aspect-video bg-zinc-900">
+                          {videoId ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${videoId}`}
+                              title={video.title}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="absolute inset-0 w-full h-full"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-zinc-600 text-sm">Invalid video URL</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-white text-sm font-medium">{video.title}</h3>
+                          {video.description && (
+                            <p className="text-zinc-500 text-xs mt-1">{video.description}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-white text-sm font-medium">{video.title}</h3>
-                        {video.description && (
-                          <p className="text-zinc-500 text-xs mt-1">{video.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </section>
           </>

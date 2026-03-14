@@ -50,7 +50,7 @@ function GalleryContent() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore, visibleCount]);
+  }, [loadMore, visibleCount, viewColumns]);
 
   // Reset visible count when images change (e.g. switching categories)
   useEffect(() => {

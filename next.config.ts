@@ -16,10 +16,7 @@ const nextConfig: NextConfig = {
         pathname: '/storage/**',
       },
     ],
-    // Allow data URLs for uploaded images
     dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    unoptimized: true, // Allow base64 data URLs
   },
   eslint: {
     // Allow builds to succeed even with ESLint errors

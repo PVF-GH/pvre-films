@@ -568,6 +568,27 @@ export default function AdminImagesPage() {
     disabled: bulkUploading,
   });
 
+  const onSingleDrop = useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+    // Reuse the same logic as handleFileSelect
+    const fakeEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
+    await handleFileSelect(fakeEvent);
+  }, []);
+
+  const { getRootProps: getSingleRootProps, getInputProps: getSingleInputProps, isDragActive: isSingleDragActive } = useDropzone({
+    onDrop: onSingleDrop,
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif'],
+      'image/tiff': ['.tif', '.tiff'],
+    },
+    maxFiles: 1,
+    disabled: uploading,
+  });
+
   const getImageSrc = (image: any) => {
     return image.thumbnail_path || image.thumbnailUrl || image.storage_path || image.imageUrl;
   };
@@ -707,38 +728,37 @@ export default function AdminImagesPage() {
               {/* File Upload */}
               <div>
                 <label className="block text-xs text-zinc-600 mb-2">Image File *</label>
-                <div className="border border-dashed border-zinc-800 p-8 text-center hover:border-zinc-600 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*,.heic,.heif,.tif,.tiff"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-                    {previewUrl ? (
-                      <div className="relative w-full max-w-xs">
-                        <Image src={previewUrl} alt="Preview" width={300} height={200} className="object-cover" />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPreviewUrl(null);
-                            setSelectedFile(null);
-                          }}
-                          className="absolute top-2 right-2 bg-black/80 text-white p-1"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload size={32} className="text-zinc-700 mb-2" />
-                        <p className="text-zinc-600 text-sm">Click to upload</p>
-                        <p className="text-zinc-700 text-xs mt-1">PNG, JPG, HEIC, TIF up to 15MB</p>
-                      </>
-                    )}
-                  </label>
+                <div
+                  {...getSingleRootProps()}
+                  className={`border border-dashed p-8 text-center transition-colors cursor-pointer ${
+                    isSingleDragActive ? 'border-white bg-zinc-900' : 'border-zinc-800 hover:border-zinc-600'
+                  } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input {...getSingleInputProps()} />
+                  {previewUrl ? (
+                    <div className="relative w-full max-w-xs mx-auto">
+                      <Image src={previewUrl} alt="Preview" width={300} height={200} className="object-cover" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewUrl(null);
+                          setSelectedFile(null);
+                        }}
+                        className="absolute top-2 right-2 bg-black/80 text-white p-1"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload size={32} className="text-zinc-700 mb-2 mx-auto" />
+                      <p className="text-zinc-600 text-sm">
+                        {isSingleDragActive ? 'Drop image here' : 'Drag & drop an image, or click to select'}
+                      </p>
+                      <p className="text-zinc-700 text-xs mt-1">PNG, JPG, HEIC, TIF up to 15MB</p>
+                    </>
+                  )}
                 </div>
               </div>
 

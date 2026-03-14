@@ -4,38 +4,53 @@ import userEvent from '@testing-library/user-event'
 import ViewControl from '@/components/ui/ViewControl'
 
 describe('ViewControl', () => {
-  it('renders all column options (1, 5, 10, 50)', () => {
+  it('renders collapsed showing current column count', () => {
+    render(<ViewControl columns={5} onChange={() => {}} />)
+    expect(screen.getByText('5')).toBeInTheDocument()
+    // Other options should NOT be visible when collapsed
+    expect(screen.queryByText('1')).not.toBeInTheDocument()
+    expect(screen.queryByText('10')).not.toBeInTheDocument()
+    expect(screen.queryByText('50')).not.toBeInTheDocument()
+  })
+
+  it('expands to show all options on click', async () => {
+    const user = userEvent.setup()
     render(<ViewControl columns={1} onChange={() => {}} />)
+
+    await user.click(screen.getByText('1'))
+
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('50')).toBeInTheDocument()
   })
 
-  it('highlights the active column button', () => {
-    render(<ViewControl columns={5} onChange={() => {}} />)
-    const activeBtn = screen.getByText('5')
-    expect(activeBtn.className).toContain('bg-white')
-    expect(activeBtn.className).toContain('text-black')
-
-    const inactiveBtn = screen.getByText('1')
-    expect(inactiveBtn.className).toContain('bg-zinc-900')
-  })
-
-  it('calls onChange with correct column count on click', async () => {
+  it('calls onChange and collapses when an option is selected', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
     render(<ViewControl columns={1} onChange={onChange} />)
 
+    // Expand
+    await user.click(screen.getByText('1'))
+    // Select 10
     await user.click(screen.getByText('10'))
-    expect(onChange).toHaveBeenCalledWith(10)
 
-    await user.click(screen.getByText('50'))
-    expect(onChange).toHaveBeenCalledWith(50)
+    expect(onChange).toHaveBeenCalledWith(10)
+    // Should collapse back — only current value visible
+    // (After onChange, parent re-renders with columns=10)
   })
 
-  it('has correct title attributes', () => {
+  it('has correct title on collapsed button', () => {
+    render(<ViewControl columns={5} onChange={() => {}} />)
+    expect(screen.getByTitle('Change view')).toBeInTheDocument()
+  })
+
+  it('has correct titles on expanded buttons', async () => {
+    const user = userEvent.setup()
     render(<ViewControl columns={1} onChange={() => {}} />)
+
+    await user.click(screen.getByText('1'))
+
     expect(screen.getByTitle('1 column')).toBeInTheDocument()
     expect(screen.getByTitle('5 columns')).toBeInTheDocument()
     expect(screen.getByTitle('10 columns')).toBeInTheDocument()

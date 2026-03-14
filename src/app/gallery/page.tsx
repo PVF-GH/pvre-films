@@ -31,7 +31,7 @@ function GalleryContent() {
   const [viewColumns, setViewColumns] = useState(1);
 
   // Infinite scroll
-  const BATCH_SIZE = 50;
+  const BATCH_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
 

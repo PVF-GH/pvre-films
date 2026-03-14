@@ -4,7 +4,6 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import ViewControl from '@/components/ui/ViewControl';
 
 interface Video {
   id: string;
@@ -32,7 +31,6 @@ function HomeContent() {
   const [settings, setSettings] = useState<Settings>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewColumns, setViewColumns] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -132,9 +130,7 @@ function HomeContent() {
             <h2 className="text-xl lg:text-2xl text-white font-light tracking-wide mb-8">
               Photos
             </h2>
-            <ViewControl columns={viewColumns} onChange={setViewColumns} />
-            {viewColumns === 1 ? (
-              <div className="relative">
+            <div className="relative">
                 {parentCategories.length > 3 && canScrollLeft && (
                   <button
                     onClick={() => scrollBy('left')}
@@ -196,44 +192,6 @@ function HomeContent() {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div
-                className="grid gap-1"
-                style={{ gridTemplateColumns: `repeat(${viewColumns}, 1fr)` }}
-              >
-                {parentCategories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/gallery?category=${encodeURIComponent(cat.slug.trim())}`}
-                    className="group"
-                  >
-                    <div className="relative aspect-square bg-zinc-900 overflow-hidden">
-                      {cat.cover_image ? (
-                        <Image
-                          src={cat.cover_image}
-                          alt={cat.name}
-                          fill
-                          className="object-cover transition-all duration-300 group-hover:opacity-80"
-                          sizes={`${Math.round(100 / viewColumns)}vw`}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-zinc-700 text-sm">No cover</span>
-                        </div>
-                      )}
-                      {viewColumns <= 10 && (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-0 left-0 right-0 p-2">
-                            <h3 className="text-white text-xs font-medium truncate">{cat.name}</h3>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
           </section>
         ) : (
           <div className="text-center py-12 mb-12">

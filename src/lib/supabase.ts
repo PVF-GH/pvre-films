@@ -152,10 +152,10 @@ export async function deleteCategory(id: string) {
 }
 
 // Image database operations
-export async function getImages(categoryId?: string, featuredOnly = false) {
+export async function getImages(categoryId?: string, featuredOnly = false, limit?: number, offset?: number) {
   let query = supabaseAdmin
     .from('images')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('display_order', { ascending: true })
 
   if (categoryId) {
@@ -166,10 +166,14 @@ export async function getImages(categoryId?: string, featuredOnly = false) {
     query = query.eq('is_featured', true)
   }
 
-  const { data, error } = await query
+  if (limit !== undefined && offset !== undefined) {
+    query = query.range(offset, offset + limit - 1)
+  }
+
+  const { data, error, count } = await query
 
   if (error) throw error
-  return data as Image[]
+  return { data: data as Image[], total: count ?? (data as Image[]).length }
 }
 
 export async function getImageById(id: string) {

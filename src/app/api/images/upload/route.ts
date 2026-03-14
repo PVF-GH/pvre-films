@@ -88,12 +88,12 @@ export async function POST(request: NextRequest) {
     const { publicUrl } = await uploadImageToStorage(buffer, fileName, file.type);
 
     // Get the next order number for this category
-    const categoryImages = categoryId
+    const result = categoryId
       ? await getImages(categoryId, false)
       : await getImages(undefined, false);
 
-    const nextOrder = categoryImages.length > 0
-      ? Math.max(...categoryImages.map(img => img.display_order)) + 1
+    const nextOrder = result.data.length > 0
+      ? Math.max(...result.data.map(img => img.display_order)) + 1
       : 1;
 
     // Create image record in Supabase

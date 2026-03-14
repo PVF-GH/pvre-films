@@ -30,14 +30,33 @@ function GalleryContent() {
   const [loading, setLoading] = useState(true);
   const [viewColumns, setViewColumns] = useState(1);
 
-  // Infinite scroll
-  const BATCH_SIZE = 20;
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  // Server-side pagination
+  const PAGE_SIZE = 20;
+  const [totalImages, setTotalImages] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const currentCategoryIdRef = useRef<string | undefined>(undefined);
+
+  const hasMore = images.length < totalImages;
 
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, images.length));
-  }, [images.length]);
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const catId = currentCategoryIdRef.current;
+    const url = catId
+      ? `/api/images?categoryId=${catId}&limit=${PAGE_SIZE}&offset=${images.length}`
+      : `/api/images?limit=${PAGE_SIZE}&offset=${images.length}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.images) {
+          setImages((prev) => [...prev, ...data.images]);
+          setTotalImages(data.total);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingMore(false));
+  }, [loadingMore, hasMore, images.length]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -50,12 +69,7 @@ function GalleryContent() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore, visibleCount, viewColumns]);
-
-  // Reset visible count when images change (e.g. switching categories)
-  useEffect(() => {
-    setVisibleCount(BATCH_SIZE);
-  }, [categoryParam]);
+  }, [loadMore, images.length, viewColumns]);
 
   // Scroll state for sub-category carousel
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,19 +105,24 @@ function GalleryContent() {
     if (categories.length === 0 && categoryParam) return;
 
     setLoading(true);
+    setImages([]);
+    setTotalImages(0);
 
-    // No category param — show all images
+    // No category param — show all images (paginated)
     if (!categoryParam) {
       setCurrentCategory(null);
-      fetch('/api/images')
+      currentCategoryIdRef.current = undefined;
+      fetch(`/api/images?limit=${PAGE_SIZE}&offset=0`)
         .then((res) => res.json())
         .then((data) => {
-          setImages(Array.isArray(data) ? data : []);
+          setImages(data.images || []);
+          setTotalImages(data.total || 0);
           setLoading(false);
         })
         .catch((error) => {
           console.error('Error fetching images:', error);
           setImages([]);
+          setTotalImages(0);
           setLoading(false);
         });
       return;
@@ -125,19 +144,24 @@ function GalleryContent() {
 
     if (children.length > 0) {
       // Parent category with sub-categories — no images to load
+      currentCategoryIdRef.current = undefined;
       setImages([]);
+      setTotalImages(0);
       setLoading(false);
     } else {
-      // Leaf category — load its images
-      fetch(`/api/images?categoryId=${category.id}`)
+      // Leaf category — load its images (paginated)
+      currentCategoryIdRef.current = category.id;
+      fetch(`/api/images?categoryId=${category.id}&limit=${PAGE_SIZE}&offset=0`)
         .then((res) => res.json())
         .then((data) => {
-          setImages(Array.isArray(data) ? data : []);
+          setImages(data.images || []);
+          setTotalImages(data.total || 0);
           setLoading(false);
         })
         .catch((error) => {
           console.error('Error fetching images:', error);
           setImages([]);
+          setTotalImages(0);
           setLoading(false);
         });
     }
@@ -149,10 +173,10 @@ function GalleryContent() {
 
   // Default to 5 columns for "All Images" (too many for full-bleed)
   useEffect(() => {
-    if (!loading && !categoryParam && images.length > 20) {
+    if (!loading && !categoryParam && totalImages > 20) {
       setViewColumns(5);
     }
-  }, [loading, categoryParam, images.length]);
+  }, [loading, categoryParam, totalImages]);
 
   const openLightbox = (index: number) => {
     setCurrentImageIndex(index);
@@ -280,15 +304,13 @@ function GalleryContent() {
             ) : (
               <>
                 <p className="text-zinc-600 text-sm mb-6">
-                  {images.length} {images.length === 1 ? 'image' : 'images'}
+                  {totalImages} {totalImages === 1 ? 'image' : 'images'}
                 </p>
                 <ViewControl columns={viewColumns} onChange={setViewColumns} />
                 {(() => {
-                  const visibleImages = images.slice(0, visibleCount);
-                  const hasMore = visibleCount < images.length;
                   return viewColumns === 1 ? (
                     <div className="-mx-6 lg:-mx-12">
-                      {visibleImages.map((image, index) => (
+                      {images.map((image, index) => (
                         <div
                           key={image.id}
                           className="relative h-[40vh] lg:h-[50vh] cursor-pointer group bg-black"
@@ -314,7 +336,7 @@ function GalleryContent() {
                         className="grid gap-1"
                         style={{ gridTemplateColumns: `repeat(${viewColumns}, 1fr)` }}
                       >
-                        {visibleImages.map((image, index) => (
+                        {images.map((image, index) => (
                           <div
                             key={image.id}
                             className="relative aspect-square bg-zinc-950 cursor-pointer group overflow-hidden"

@@ -35,29 +35,40 @@ describe('GET /api/images', () => {
       { id: '1', title: 'Image 1' },
       { id: '2', title: 'Image 2' },
     ]
-    mockGetImages.mockResolvedValue(mockImages as any)
+    mockGetImages.mockResolvedValue({ data: mockImages, total: 2 } as any)
 
     const response = await GET(makeRequest('http://localhost/api/images'))
     const data = await response.json()
 
-    expect(mockGetImages).toHaveBeenCalledWith(undefined, false)
+    expect(mockGetImages).toHaveBeenCalledWith(undefined, false, undefined, undefined)
     expect(data).toEqual(mockImages)
   })
 
   it('filters by categoryId when provided', async () => {
-    mockGetImages.mockResolvedValue([])
+    mockGetImages.mockResolvedValue({ data: [], total: 0 } as any)
 
     await GET(makeRequest('http://localhost/api/images?categoryId=cat-123'))
 
-    expect(mockGetImages).toHaveBeenCalledWith('cat-123', false)
+    expect(mockGetImages).toHaveBeenCalledWith('cat-123', false, undefined, undefined)
   })
 
   it('filters by featured when explicitly true', async () => {
-    mockGetImages.mockResolvedValue([])
+    mockGetImages.mockResolvedValue({ data: [], total: 0 } as any)
 
     await GET(makeRequest('http://localhost/api/images?featured=true'))
 
-    expect(mockGetImages).toHaveBeenCalledWith(undefined, true)
+    expect(mockGetImages).toHaveBeenCalledWith(undefined, true, undefined, undefined)
+  })
+
+  it('returns paginated response when limit is provided', async () => {
+    const mockImages = [{ id: '1', title: 'Image 1' }]
+    mockGetImages.mockResolvedValue({ data: mockImages, total: 50 } as any)
+
+    const response = await GET(makeRequest('http://localhost/api/images?limit=20&offset=0'))
+    const data = await response.json()
+
+    expect(mockGetImages).toHaveBeenCalledWith(undefined, false, 20, 0)
+    expect(data).toEqual({ images: mockImages, total: 50 })
   })
 
   it('returns 500 on error', async () => {

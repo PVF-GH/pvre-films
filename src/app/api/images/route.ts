@@ -9,17 +9,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
     const featured = searchParams.get('featured');
+    const limit = searchParams.get('limit');
+    const offset = searchParams.get('offset');
 
     // Only filter by featured if explicitly requested
     const featuredOnly = featured === 'true';
 
     // Get images from Supabase
-    const images = await getImages(
+    const result = await getImages(
       categoryId || undefined,
-      featuredOnly
+      featuredOnly,
+      limit ? parseInt(limit) : undefined,
+      offset ? parseInt(offset) : undefined,
     );
 
-    return NextResponse.json(images);
+    // If paginated, return { images, total }; otherwise return flat array for backward compat
+    if (limit) {
+      return NextResponse.json({ images: result.data, total: result.total });
+    }
+    return NextResponse.json(result.data);
   } catch (error) {
     console.error('Error fetching images:', error);
     return NextResponse.json(

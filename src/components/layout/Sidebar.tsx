@@ -242,6 +242,23 @@ function SidebarContent() {
           {/* Divider */}
           <div className="mb-6 border-t border-zinc-900" />
 
+          {/* Thread Section */}
+          <div className="mb-6">
+            <Link
+              href="/thread"
+              onClick={closeMobileMenu}
+              className={`
+                block text-sm transition-colors duration-200
+                ${isActive('/thread') ? 'text-white' : 'text-zinc-500 hover:text-white'}
+              `}
+            >
+              Thread
+            </Link>
+          </div>
+
+          {/* Divider */}
+          <div className="mb-6 border-t border-zinc-900" />
+
           {/* About & Contact Section */}
           <div className="space-y-3">
             <Link
